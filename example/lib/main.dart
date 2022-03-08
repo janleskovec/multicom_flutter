@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:multicom_flutter/multicom_flutter.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,8 +33,9 @@ class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
 
   void _incrementCounter() {
+    final c = Calculator();
     setState(() {
-      _counter++;
+      _counter = c.addOne(_counter);
     });
   }
 
