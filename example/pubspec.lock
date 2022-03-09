@@ -163,6 +163,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.3.0"
+  udp:
+    dependency: transitive
+    description:
+      name: udp
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "5.0.1"
   vector_math:
     dependency: transitive
     description:

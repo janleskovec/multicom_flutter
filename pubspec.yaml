@@ -1,5 +1,5 @@
 name: multicom_flutter
-description: A new Flutter package project.
+description: Flutter implementation for the MultiCom protocol
 version: 0.0.1
 homepage:
 
@@ -10,6 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  udp: ^5.0.1
 
 dev_dependencies:
   flutter_test:
