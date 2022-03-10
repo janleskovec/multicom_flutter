@@ -29,23 +29,29 @@ class _DeviceCardState extends State<DeviceCard> {
       padding: const EdgeInsets.all(8.0),
       child: Card(
         elevation: 8,
-        child: Column(children: [
-          Text(widget.device.ddata.devId),
-          Row(children: [
-            ElevatedButton(
-              child: const Text('ping'),
-              onPressed: () async {
-                if (session == null) return;
-                bool res = await session!.ping();
-                if (res) {
-                  Fluttertoast.showToast(msg: 'pong');
-                } else {
-                  Fluttertoast.showToast(msg: 'ping failed!');
-                }
-              },
-            ),
-          ],)
-        ],),
+        child: Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: Column(children: [
+            Text(widget.device.ddata.devId),
+            Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                ElevatedButton(
+                  child: const Text('ping'),
+                  onPressed: () async {
+                    if (session == null) return;
+                    bool res = await session!.ping();
+                    if (res) {
+                      Fluttertoast.showToast(msg: 'pong');
+                    } else {
+                      Fluttertoast.showToast(msg: 'ping failed!');
+                    }
+                  },
+                ),
+              ],),
+            )
+          ],),
+        ),
       ),
     );
   }
