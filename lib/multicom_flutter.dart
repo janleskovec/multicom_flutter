@@ -54,10 +54,8 @@ class Client {
     required Uint8List data,
   }) {
     if (data.isEmpty) return null;
-    //PacketType packetType = PacketType(data[0]);
+
     int sessionId = data.buffer.asByteData(1, 4).getInt32(0, Endian.big).toUnsigned(32);
-    //int nonce      = data.buffer.asByteData(5, 4).getInt32(0, Endian.big).toUnsigned(32);
-    //Uint8List msg  = Uint8List.fromList(data.skip(9).toList()); // first 9 bytes are header data
 
     for (int sid in sessions.keys) {
       if (sessionId == sid) sessions[sid]?.onMsg(data: data);
@@ -147,7 +145,6 @@ class Session {
     required Uint8List data,
   }) {
     PacketType packetType = PacketType(data[0]);
-    //int sessionId = data.buffer.asByteData(1, 4).getInt32(0, Endian.big).toUnsigned(32);
     int nonce      = data.buffer.asByteData(5, 4).getInt32(0, Endian.big).toUnsigned(32);
     Uint8List msg  = Uint8List.fromList(data.skip(9).toList()); // first 9 bytes are header data
 
