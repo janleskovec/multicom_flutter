@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:developer';
 import 'dart:typed_data';
 
 import 'package:multicom_flutter/packet.dart';
@@ -10,16 +9,19 @@ import 'package:multicom_flutter/multicom_flutter.dart';
 /// Udp device implementation
 class UdpDevice extends Device {
   UdpDevice({
+    required ddata,
     required this.channel,
-  });
+    required this.addr,
+    required this.port,
+  }) : super(ddata: ddata);
 
   final UdpChannel channel;
-  // TODO: othr
+  final InternetAddress addr;
+  final int port;
 
   @override
-  Future<void> send(Uint8List data) {
-    // TODO: implement send
-    throw UnimplementedError();
+  Future<void> send(Uint8List data) async {
+    await channel.socket?.send(data, Endpoint.unicast(addr, port: Port(port)));
   }
 }
 
@@ -40,8 +42,20 @@ class UdpChannel extends Channel {
   }
 
   _onNewDevice(DiscoveryData ddata, Datagram datagram) {
-    // TODO: implement
-    log(ddata.devId);
+    for (String devId in devices.keys) {
+      if (ddata.devId == devId) {
+        return; // device allready found
+      }
+    }
+
+    devices[ddata.devId] = UdpDevice(
+      ddata: ddata,
+      channel: this,
+      addr: datagram.address,
+      port: datagram.port,
+    );
+
+    onDeviceListChanged?.call();
   }
 
   _onMsg(Datagram? dat) {
@@ -52,6 +66,12 @@ class UdpChannel extends Channel {
     if (packetType == PacketType.discoveryHelo) {
       _onNewDevice(DiscoveryData(dat.data), dat);
     }
+
+    // call callback
+    client?.onMsg(
+      channel: this,
+      data: dat.data,
+    );
   }
 
   @override
@@ -63,10 +83,14 @@ class UdpChannel extends Channel {
 
   @override
   Future<void> startDiscovery({
-    required Function(DiscoveryData p1) newDevCallback,
+    required Function()? onDeviceListChanged,
   }) async {
+    // set callback
+    this.onDeviceListChanged = onDeviceListChanged;
+
+    // send discovery packet 5 times
     for (int i = 0; i < 5; i++) {
-      socket?.send('\x00'.codeUnits, Endpoint.broadcast(port: Port(targetPort)));
+      await socket?.send('\x00'.codeUnits, Endpoint.broadcast(port: Port(targetPort)));
       await Future.delayed(const Duration(milliseconds: 250));
     } 
   }

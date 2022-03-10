@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:multicom_flutter/multicom_flutter.dart';
 
@@ -31,13 +33,21 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-  Client client = Client(channels: [
+  List<Device> devices = [];
+
+  Client client = Client(
+    channels: [
     UdpChannel(targetPort: 5021),
   ]);
 
   @override
   initState() {
-    client.init();
+    client.init(
+      onDeviceListChanged: () {
+        setState(() {
+          devices = client.getDeviceList();
+        });
+    });
     super.initState();
   }
 
@@ -48,13 +58,9 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const <Widget>[
-            Text(
-              'Hello',
-            ),
-          ],
+        child: ListView.builder(
+          itemCount: devices.length,
+          itemBuilder: (context, i) => Text(devices[i].ddata.devId),
         ),
       ),
       floatingActionButton: FloatingActionButton(
