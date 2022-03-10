@@ -1,5 +1,4 @@
-import 'dart:developer';
-
+import 'package:example/device_card.dart';
 import 'package:flutter/material.dart';
 import 'package:multicom_flutter/multicom_flutter.dart';
 
@@ -60,7 +59,10 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         child: ListView.builder(
           itemCount: devices.length,
-          itemBuilder: (context, i) => Text(devices[i].ddata.devId),
+          itemBuilder: (context, i) => DeviceCard(
+            client: client,
+            device: devices[i],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
