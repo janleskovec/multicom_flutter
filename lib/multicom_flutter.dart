@@ -59,9 +59,7 @@ class Client {
     //int nonce      = data.buffer.asByteData(5, 4).getInt32(0, Endian.big).toUnsigned(32);
     //Uint8List msg  = Uint8List.fromList(data.skip(9).toList()); // first 9 bytes are header data
 
-    log('session id: $sessionId');
     for (int sid in sessions.keys) {
-      log('sid: $sid');
       if (sessionId == sid) sessions[sid]?.onMsg(data: data);
     }
   }
