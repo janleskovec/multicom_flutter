@@ -155,43 +155,112 @@ class Session {
       }
     } else if (packetType == PacketType.notFound) {
       // endpoint not found TODO: exception?
+      // complete future with null
+      if (requestCompleters.containsKey(nonce)) {
+        requestCompleters[nonce]?.complete(null);
+        requestCompleters.remove(nonce);
+      }
     } else if (packetType == PacketType.getReply) {
-      //
+      if (requestCompleters.containsKey(nonce)) {
+        requestCompleters[nonce]?.complete(msg);
+        requestCompleters.remove(nonce);
+      }
     } else if (packetType == PacketType.ack) {
-      //
+      if (requestCompleters.containsKey(nonce)) {
+        requestCompleters[nonce]?.complete(true);
+        requestCompleters.remove(nonce);
+      }
     }
   }
 
-  Future<bool> ping() async {
+  /// send ping packet
+  Future<bool?> ping() async {
     final random = math.Random();
-    int nonce = random.nextInt((math.pow(2, 32)-1).toInt());
+    int _nonce = random.nextInt((math.pow(2, 32)-1).toInt());
 
-    var completer = Completer<bool>();
-    requestCompleters[nonce] = completer;
-
-    var nonceData = ByteData(4);
-    nonceData.setUint32(0, nonce);
-
-    var idData = ByteData(4);
-    idData.setUint32(0, id);
+    var completer = Completer<bool?>();
+    requestCompleters[_nonce] = completer;
 
     // NOTE: getter is always used to allow backends to reconnect
     //       or to switch over to a new backend if one fails
     await client.getDevice(devId)?.send(Uint8List.fromList(
       [PacketType.ping.type] +
-      idData.buffer.asInt8List() +
-      nonceData.buffer.asInt8List()
+      (ByteData(4)..setUint32(0, id   )).buffer.asInt8List() +
+      (ByteData(4)..setUint32(0, _nonce)).buffer.asInt8List()
     ));
 
-    bool res = await completer.future.timeout(const Duration(seconds: 4), onTimeout: () => false);
+    bool? res = await completer.future.timeout(const Duration(seconds: 4), onTimeout: () => null);
 
     // remove completer
-    if (requestCompleters.containsKey(nonce)) { requestCompleters.remove(nonce); }
+    if (requestCompleters.containsKey(_nonce)) { requestCompleters.remove(_nonce); }
 
     return res;
   }
 
-  // TODO: implement: get, send, post
+  /// retreive data from endpoint
+  Future<Uint8List?> get(String endpoint, { data='' }) async {
+    final random = math.Random();
+    int _nonce = random.nextInt((math.pow(2, 32)-1).toInt());
+
+    var completer = Completer<Uint8List?>();
+    requestCompleters[_nonce] = completer;
+
+    await client.getDevice(devId)?.send(Uint8List.fromList(
+      [PacketType.get.type] +
+      (ByteData(4)..setUint32(0, id   )).buffer.asInt8List() +
+      (ByteData(4)..setUint32(0, _nonce)).buffer.asInt8List() +
+      Uint8List.fromList(endpoint.codeUnits) + Uint8List.fromList([0]) +
+      Uint8List.fromList(data.codeUnits)
+    ));
+
+    Uint8List? res = await completer.future.timeout(const Duration(seconds: 4), onTimeout: () => null);
+
+    // remove completer
+    if (requestCompleters.containsKey(_nonce)) { requestCompleters.remove(_nonce); }
+
+    return res;
+  }
+
+  /// send data to endpoint, without expecting an answer
+  Future<void> send(String endpoint, { data='' }) async {
+    int _nonce = nonce;
+    nonce++;
+
+    await client.getDevice(devId)?.send(Uint8List.fromList(
+      [PacketType.send.type] +
+      (ByteData(4)..setUint32(0, id   )).buffer.asInt8List() +
+      (ByteData(4)..setUint32(0, _nonce)).buffer.asInt8List() +
+      Uint8List.fromList(endpoint.codeUnits) + Uint8List.fromList([0]) +
+      Uint8List.fromList(data.codeUnits)
+    ));
+  }
+
+  /// send data to endpoint and wait for ack
+  Future<bool?> post(String endpoint, { data='' }) async {
+
+    int _nonce = nonce;
+    nonce++;
+
+    var completer = Completer<bool?>();
+    requestCompleters[_nonce] = completer;
+
+    await client.getDevice(devId)?.send(Uint8List.fromList(
+      [PacketType.post.type] +
+      (ByteData(4)..setUint32(0, id   )).buffer.asInt8List() +
+      (ByteData(4)..setUint32(0, _nonce)).buffer.asInt8List() +
+      Uint8List.fromList(endpoint.codeUnits) + Uint8List.fromList([0]) +
+      Uint8List.fromList(data.codeUnits)
+    ));
+
+    bool? res = await completer.future.timeout(const Duration(seconds: 4), onTimeout: () => null);
+
+    // remove completer
+    if (requestCompleters.containsKey(_nonce)) { requestCompleters.remove(_nonce); }
+
+    return res;
+  }
+
+  // TODO: global timeout setting, retransmit get, post
 }
 
 
