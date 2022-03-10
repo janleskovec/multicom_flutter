@@ -40,12 +40,14 @@ class _DeviceCardState extends State<DeviceCard> {
                   child: const Text('ping'),
                   onPressed: () async {
                     if (session == null) return;
+                    Stopwatch stopwatch = Stopwatch()..start();
                     bool res = await session!.ping();
                     if (res) {
-                      Fluttertoast.showToast(msg: 'pong');
+                      Fluttertoast.showToast(msg: 'pong (${stopwatch.elapsed.inMilliseconds}ms)');
                     } else {
                       Fluttertoast.showToast(msg: 'ping failed!');
                     }
+                    stopwatch.stop();
                   },
                 ),
               ],),
