@@ -305,6 +305,7 @@ abstract class Device {
 /// Discovery packet data parser
 class DiscoveryData {
   DiscoveryData(Uint8List data) {
+    // TODO: RangeError (RangeError (index): Invalid value: Not in inclusive range 0..1: 2)
     var _decoded = String.fromCharCodes(data, 1).split('\x00');
     fwId = _decoded[0];
     devId = _decoded[1];

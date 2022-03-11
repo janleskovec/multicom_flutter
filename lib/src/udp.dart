@@ -60,6 +60,7 @@ class UdpChannel extends Channel {
 
   _onMsg(Datagram? dat) {
     if (dat == null) return null;
+    if (dat.data.length < 9) return null;
 
     PacketType packetType = PacketType(dat.data[0]);
 

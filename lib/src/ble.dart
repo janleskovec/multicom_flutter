@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 import 'dart:typed_data';
@@ -12,13 +13,19 @@ class BleDevice extends Device {
   BleDevice({
     required ddata,
     required this.channel,
+    required this.device,
+    required this.rxc,
+    required this.txc,
   }) : super(ddata: ddata);
 
   final BleChannel channel;
+  final BluetoothDevice device;
+  final BluetoothCharacteristic rxc;
+  final BluetoothCharacteristic txc;
 
   @override
   Future<void> send(Uint8List data) async {
-    // TODO: implement
+    await txc.write(data.toList());
   }
 }
 
@@ -35,12 +42,118 @@ class BleChannel extends Channel {
   @override
   Future<void> init() async {
     // Listen to scan results
+    // TODO: cancel subscription if closign channel?
     var subscription = flutterBlue.scanResults.listen((results) {
-        // do something with scan results
         for (ScanResult r in results) {
-            log('${r.device.name} found! rssi: ${r.rssi}');
+          _onBtDeviceFound(r.device);
         }
     });
+  }
+
+  final Set<String> _scannedDevices = { };
+
+  _onBtDeviceFound(BluetoothDevice dev) async {
+    // check if allready found
+    if (_scannedDevices.contains(dev.id.id)) return;
+    _scannedDevices.add(dev.id.id);
+
+    await dev.connect();
+
+    List<BluetoothService> services = await dev.discoverServices();
+    BluetoothService? uartService; 
+    for (BluetoothService s in services) {
+      if (s.uuid == Guid(serviceUUID)) {
+        uartService = s;
+        break;
+      }
+    }
+
+    log('device: "${dev.name}"');
+
+    log('uartService: ${uartService?.uuid.toString()}');
+
+    if (uartService == null) {
+      await dev.disconnect();
+      return;
+    }
+
+    BluetoothCharacteristic? rxc, txc;
+    for (BluetoothCharacteristic c in uartService.characteristics) {
+      if (c.uuid == Guid(charRxUUID)) {
+        rxc = c;
+      } else if (c.uuid == Guid(charTxUUID)) {
+        txc = c;
+      }
+    }
+
+    if (rxc == null || txc == null) {
+      await dev.disconnect();
+      return;
+    }
+
+    int mtu = 512;
+    if (Platform.isAndroid) mtu = 512;
+    if (Platform.isIOS) mtu = 185;
+    await dev.requestMtu(mtu);
+    mtu = await dev.mtu.first;
+    log('BT MTU: $mtu');
+    // minimum MTU is 64, so that discovery does not fail
+    if (mtu < 64) {
+      await dev.disconnect();
+      return;
+    }
+
+    final completer = Completer<List<int>?>();
+    await rxc.setNotifyValue(true);
+    var sub = rxc.value.listen((value) {
+      if (value.isNotEmpty) completer.complete(value);
+    });
+
+    await txc.write([0]);
+
+    List<int>? res = await completer.future.timeout(const Duration(seconds: 2), onTimeout: () => null);
+
+    log('discovery res = $res');
+
+    await sub.cancel();
+
+    if (res == null) {
+      await dev.disconnect();
+      return;
+    }
+
+    PacketType packetType = PacketType(res[0]);
+
+    if (packetType != PacketType.discoveryHelo) {
+      await dev.disconnect();
+      return;
+    }
+
+    DiscoveryData ddata = DiscoveryData(Uint8List.fromList(res));
+
+    devices[ddata.devId] = BleDevice(
+      ddata: ddata,
+      channel: this,
+      device: dev,
+      rxc: rxc,
+      txc: txc,
+    );
+
+    // set callback
+    rxc.value.listen(_onMsg);
+
+    onDeviceListChanged?.call();
+  }
+
+  _onMsg(List<int> data) {
+    // header is 9 bytes long
+    if (data.length < 9) return null;
+
+    // call callback
+    client?.onMsg(
+      channel: this,
+      data: Uint8List.fromList(data),
+    );
   }
 
   @override
@@ -62,6 +175,6 @@ class BleChannel extends Channel {
     }
 
     // Start scanning
-    flutterBlue.startScan(timeout: const Duration(seconds: 4));
+    flutterBlue.startScan(timeout: const Duration(seconds: 8));
   }
 }
