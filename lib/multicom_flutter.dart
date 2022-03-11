@@ -3,7 +3,6 @@ library multicom_flutter;
 export 'src/udp.dart' show UdpChannel, UdpDevice;
 
 import 'dart:async';
-import 'dart:developer';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
