@@ -85,8 +85,7 @@ class UdpChannel extends Channel {
   Future<void> startDiscovery({
     required Function()? onDeviceListChanged,
   }) async {
-    // set callback
-    this.onDeviceListChanged = onDeviceListChanged;
+    super.startDiscovery(onDeviceListChanged: onDeviceListChanged);
 
     // send discovery packet 5 times
     for (int i = 0; i < 5; i++) {

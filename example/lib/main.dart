@@ -36,8 +36,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Client client = Client(
     channels: [
-    UdpChannel(targetPort: 5021),
-  ]);
+      UdpChannel(targetPort: 5021),
+      BleChannel(),
+    ]);
 
   @override
   initState() {

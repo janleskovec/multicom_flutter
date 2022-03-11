@@ -2,6 +2,7 @@ name: multicom_flutter
 description: Flutter implementation for the MultiCom protocol
 version: 0.0.1
 homepage:
+publish_to: none
 
 environment:
   sdk: ">=2.15.1 <3.0.0"
@@ -10,7 +11,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  udp: ^5.0.1
+  
+  udp: ^5.0.1                # udp comm
+  flutter_blue_plus: ^1.1.2  # BLE
+  permission_handler: ^9.2.0 # BLE
 
 dev_dependencies:
   flutter_test:

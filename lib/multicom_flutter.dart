@@ -1,6 +1,7 @@
 library multicom_flutter;
 
 export 'src/udp.dart' show UdpChannel, UdpDevice;
+export 'src/ble.dart' show BleChannel, BleDevice;
 
 import 'dart:async';
 import 'dart:math' as math;
@@ -280,7 +281,10 @@ abstract class Channel {
   /// NOTE: calling cancels previous onDeviceListChanged
   Future<void> startDiscovery({
     required Function()? onDeviceListChanged,
-  });
+  }) async {
+    // set callback
+    this.onDeviceListChanged = onDeviceListChanged;
+  }
 
   /// Clears list of devices and closes connections if needed
   Future<void> clearDevices();
