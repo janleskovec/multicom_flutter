@@ -16,12 +16,22 @@ class BleDevice extends Device {
     required this.device,
     required this.rxc,
     required this.txc,
-  }) : super(ddata: ddata);
+  }) : super(ddata: ddata) {
+    stateSub = device.state.listen(_onStateChanged);
+  }
 
   final BleChannel channel;
   final BluetoothDevice device;
   final BluetoothCharacteristic rxc;
   final BluetoothCharacteristic txc;
+
+  StreamSubscription<BluetoothDeviceState>? stateSub;
+
+  _onStateChanged(BluetoothDeviceState state) {
+    if (state == BluetoothDeviceState.disconnected) {
+      channel.removeDevice(this);
+    }
+  }
 
   @override
   Future<void> send(Uint8List data) async {
@@ -156,9 +166,21 @@ class BleChannel extends Channel {
     );
   }
 
+  removeDevice(BleDevice dev) {
+    if (devices.containsKey(dev.ddata.devId)) devices.remove(dev.ddata.devId);
+    if (_scannedDevices.contains(dev.device.id.id)) _scannedDevices.remove(dev.device.id.id);
+
+    dev.stateSub?.cancel();
+    dev.device.disconnect();
+
+    onDeviceListChanged?.call();
+  }
+
   @override
   Future<void> clearDevices() async {
-    // TODO: implement
+    for (String devId in devices.keys) {
+      removeDevice(devices[devId] as BleDevice);
+    }
   }
 
   @override
