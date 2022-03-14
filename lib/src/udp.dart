@@ -23,6 +23,11 @@ class UdpDevice extends Device {
   Future<void> send(Uint8List data) async {
     await channel.socket?.send(data, Endpoint.unicast(addr, port: Port(port)));
   }
+
+  @override
+  Future<void> remove() async {
+    channel.removeDevice(this);
+  }
 }
 
 /// Udp comm implementation
@@ -75,11 +80,19 @@ class UdpChannel extends Channel {
     );
   }
 
+  removeDevice(UdpDevice dev) {
+    if (devices.containsKey(dev.ddata.devId)) {
+      devices.remove(dev.ddata.devId);
+    }
+  }
+
   @override
   Future<void> clearDevices() async {
     for (String devId in devices.keys) {
       devices.remove(devId);
     }
+
+    onDeviceListChanged?.call();
   }
 
   @override

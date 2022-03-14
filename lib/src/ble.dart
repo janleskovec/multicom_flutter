@@ -37,6 +37,11 @@ class BleDevice extends Device {
   Future<void> send(Uint8List data) async {
     await txc.write(data.toList());
   }
+
+  @override
+  Future<void> remove() async {
+    channel.removeDevice(this);
+  }
 }
 
 /// BLE comm implementation

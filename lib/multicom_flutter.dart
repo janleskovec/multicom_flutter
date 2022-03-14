@@ -183,7 +183,10 @@ class Session {
 
     // NOTE: getter is always used to allow backends to reconnect
     //       or to switch over to a new backend if one fails
-    await client.getDevice(devId)?.send(Uint8List.fromList(
+    Device? device = client.getDevice(devId);
+    if (device == null) return null;
+
+    await device.send(Uint8List.fromList(
       [PacketType.ping.type] +
       (ByteData(4)..setUint32(0, id   )).buffer.asInt8List() +
       (ByteData(4)..setUint32(0, _nonce)).buffer.asInt8List()
@@ -193,6 +196,15 @@ class Session {
 
     // remove completer
     if (requestCompleters.containsKey(_nonce)) { requestCompleters.remove(_nonce); }
+
+    // failed device removal logic
+    if (res == null) {
+      device.failedCounter++;
+    } else {
+      device.failedCounter = 0;
+    }
+    // TODO: global failed count setting
+    if (device.failedCounter > 4) device.remove();
 
     return res;
   }
@@ -205,7 +217,10 @@ class Session {
     var completer = Completer<Uint8List?>();
     requestCompleters[_nonce] = completer;
 
-    await client.getDevice(devId)?.send(Uint8List.fromList(
+    Device? device = client.getDevice(devId);
+    if (device == null) return null;
+
+    await device.send(Uint8List.fromList(
       [PacketType.get.type] +
       (ByteData(4)..setUint32(0, id   )).buffer.asInt8List() +
       (ByteData(4)..setUint32(0, _nonce)).buffer.asInt8List() +
@@ -218,6 +233,15 @@ class Session {
     // remove completer
     if (requestCompleters.containsKey(_nonce)) { requestCompleters.remove(_nonce); }
 
+    // failed device removal logic
+    if (res == null) {
+      device.failedCounter++;
+    } else {
+      device.failedCounter = 0;
+    }
+    // TODO: global failed count setting
+    if (device.failedCounter > 4) device.remove();
+
     return res;
   }
 
@@ -226,7 +250,10 @@ class Session {
     int _nonce = nonce;
     nonce++;
 
-    await client.getDevice(devId)?.send(Uint8List.fromList(
+    Device? device = client.getDevice(devId);
+    if (device == null) return;
+
+    await device.send(Uint8List.fromList(
       [PacketType.send.type] +
       (ByteData(4)..setUint32(0, id   )).buffer.asInt8List() +
       (ByteData(4)..setUint32(0, _nonce)).buffer.asInt8List() +
@@ -244,7 +271,10 @@ class Session {
     var completer = Completer<bool?>();
     requestCompleters[_nonce] = completer;
 
-    await client.getDevice(devId)?.send(Uint8List.fromList(
+    Device? device = client.getDevice(devId);
+    if (device == null) return null;
+
+    await device.send(Uint8List.fromList(
       [PacketType.post.type] +
       (ByteData(4)..setUint32(0, id   )).buffer.asInt8List() +
       (ByteData(4)..setUint32(0, _nonce)).buffer.asInt8List() +
@@ -256,6 +286,15 @@ class Session {
 
     // remove completer
     if (requestCompleters.containsKey(_nonce)) { requestCompleters.remove(_nonce); }
+
+    // failed device removal logic
+    if (res == null) {
+      device.failedCounter++;
+    } else {
+      device.failedCounter = 0;
+    }
+    // TODO: global failed count setting
+    if (device.failedCounter > 4) device.remove();
 
     return res;
   }
@@ -298,8 +337,13 @@ abstract class Device {
 
   final DiscoveryData ddata;
 
+  int failedCounter = 0;
+
   /// Send data to the device
   Future<void> send(Uint8List data);
+
+  /// Remove device from channel
+  Future<void> remove();
 }
 
 /// Discovery packet data parser
