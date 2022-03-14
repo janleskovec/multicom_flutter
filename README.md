@@ -4,7 +4,11 @@ Client library implementation for [MultiCom](https://github.com/janleskovec/Mult
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+- discover nearby compatible devices
+- ping
+- get
+- send
+- post
 
 ## Getting started
 
@@ -17,15 +21,34 @@ start using the package.
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder. 
+Following is some ecample usage of this library. For more detail spin up the [example](/example/)
 
 ```dart
-const like = 'sample';
+// create a new client object with selected backends
+Client client = Client(
+    channels: [
+        UdpChannel(targetPort: 5021),
+        BleChannel(),
+    ]);
+
+// initiate device discovery
+client.sendDiscover();
+
+//... after some devices are found
+
+// obtain a list of discovered devices
+devices = client.getDeviceList();
+
+// open a new connection session
+session = widget.client.open(devices[0].ddata.devId);
+
+// test ping
+Stopwatch stopwatch = Stopwatch()..start();
+bool? res = await session.ping();
+if (res != null && res) {
+    log('pong (${stopwatch.elapsed.inMilliseconds}ms)');
+} else {
+    log('ping failed!');
+}
+stopwatch.stop();
 ```
-
-## Additional information
-
-TODO: Tell users more about the package: where to find more information, how to 
-contribute to the package, how to file issues, what response they can expect 
-from the package authors, and more.
