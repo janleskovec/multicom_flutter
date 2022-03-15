@@ -52,8 +52,8 @@ class Client {
   removeChannel(Type type) async {
     for (Channel ch in channels) {
       if (ch.runtimeType == type) {
-        await ch.clearDevices();
         channels.remove(ch);
+        await ch.clearDevices();
       }
     }
   }
