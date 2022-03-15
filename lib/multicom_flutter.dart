@@ -37,15 +37,25 @@ class Client {
   }
 
   /// Adds a new backend communication channel implementation to the client
-  void addChannel({
-    required Channel channel
-  }) {
+  addChannel(Channel channel) async {
     // prevent duplicate channel types
     for (Channel ch in channels) {
       if (channel.runtimeType == ch.runtimeType) return;
     }
     channel.client = this;
     channels.add(channel);
+
+    await channel.init();
+  }
+
+  /// Remove a channel type
+  removeChannel(Type type) async {
+    for (Channel ch in channels) {
+      if (ch.runtimeType == type) {
+        await ch.clearDevices();
+        channels.remove(ch);
+      }
+    }
   }
 
   /// internal callback function (called from a channel implementation when a new packet arrives)
