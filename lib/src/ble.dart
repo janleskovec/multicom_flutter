@@ -128,8 +128,6 @@ class BleChannel extends Channel {
 
     List<int>? res = await completer.future.timeout(const Duration(seconds: 2), onTimeout: () => null);
 
-    log('discovery res = $res');
-
     await sub.cancel();
 
     if (res == null) {
