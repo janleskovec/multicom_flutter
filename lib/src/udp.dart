@@ -88,7 +88,9 @@ class UdpChannel extends Channel {
 
   @override
   Future<void> clearDevices() async {
-    for (String devId in devices.keys) {
+    var _devIds = devices.keys;
+    
+    for (String devId in _devIds) {
       devices.remove(devId);
     }
 

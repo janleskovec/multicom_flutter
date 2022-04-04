@@ -171,21 +171,25 @@ class BleChannel extends Channel {
     );
   }
 
-  removeDevice(BleDevice dev) {
+  removeDevice(BleDevice dev, {callCallback=true}) {
     if (devices.containsKey(dev.ddata.devId)) devices.remove(dev.ddata.devId);
     if (_scannedDevices.contains(dev.device.id.id)) _scannedDevices.remove(dev.device.id.id);
 
     dev.stateSub?.cancel();
     dev.device.disconnect();
 
-    onDeviceListChanged?.call();
+    if (callCallback) onDeviceListChanged?.call();
   }
 
   @override
   Future<void> clearDevices() async {
-    for (String devId in devices.keys) {
-      removeDevice(devices[devId] as BleDevice);
+    var _devIds = devices.keys;
+
+    for (String devId in _devIds) {
+      removeDevice(devices[devId] as BleDevice, callCallback: false);
     }
+
+    onDeviceListChanged?.call();
   }
 
   @override
