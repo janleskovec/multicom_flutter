@@ -72,12 +72,26 @@ class Client {
     }
   }
 
+  /// Start discovery procedures in each channel
   Future<void> sendDiscover() async {
 
     final futures = <Future>[];
 
     for (Channel ch in channels) {
       futures.add(ch.startDiscovery(onDeviceListChanged: onDeviceListChanged));
+    }
+
+    for (Future f in futures) {
+      await f;
+    }
+  }
+
+  /// Clear the internal device objects for a complete refresh
+  Future<void> clearDevices() async {
+    final futures = <Future>[];
+
+    for (Channel ch in channels) {
+      futures.add(ch.clearDevices());
     }
 
     for (Future f in futures) {
