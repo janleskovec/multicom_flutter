@@ -72,7 +72,9 @@ class BleChannel extends Channel {
     if (_scannedDevices.contains(dev.id.id)) return;
     _scannedDevices.add(dev.id.id);
 
-    await dev.connect();
+    if (! (await flutterBlue.connectedDevices).contains(dev)) {
+      await dev.connect();
+    }
 
     List<BluetoothService> services = await dev.discoverServices();
     BluetoothService? uartService; 
