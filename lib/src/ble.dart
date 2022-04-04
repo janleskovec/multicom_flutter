@@ -205,7 +205,8 @@ class BleChannel extends Channel {
       await Permission.bluetoothConnect.request();
     }
 
-    // Start scanning
+    // (re)Start scanning
+    flutterBlue.stopScan();
     flutterBlue.startScan(timeout: const Duration(seconds: 8));
   }
 }
