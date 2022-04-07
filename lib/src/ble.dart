@@ -57,7 +57,7 @@ class BleChannel extends Channel {
   @override
   Future<void> init() async {
     // Listen to scan results
-    // TODO: cancel subscription if closign channel?
+    // TODO: cancel subscription if closing channel?
     var subscription = flutterBlue.scanResults.listen((results) {
         for (ScanResult r in results) {
           _onBtDeviceFound(r.device);
@@ -68,6 +68,8 @@ class BleChannel extends Channel {
   final Set<String> _scannedDevices = { };
 
   _onBtDeviceFound(BluetoothDevice dev) async {
+    log('BleChannel._onBtDeviceFound: ${dev.id} - "${dev.name}"');
+
     // check if allready found
     if (_scannedDevices.contains(dev.id.id)) return;
     _scannedDevices.add(dev.id.id);
