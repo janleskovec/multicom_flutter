@@ -185,6 +185,8 @@ class BleChannel extends Channel {
 
   @override
   Future<void> clearDevices() async {
+    _scannedDevices.clear(); // to allow re-scanning
+
     var _devIds = List.from(devices.keys);
 
     List<Future> futures = [];
