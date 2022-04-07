@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -40,10 +41,18 @@ class UdpChannel extends Channel {
 
   UDP? socket;
 
+  StreamSubscription? ssOnMsg;
+
   @override
   Future<void> init() async {
+    close(); // close old socket if exists
     socket = await UDP.bind(Endpoint.any());
-    socket!.asStream().listen(_onMsg);
+    ssOnMsg = socket!.asStream().listen(_onMsg);
+  }
+
+  close() {
+    ssOnMsg?.cancel(); ssOnMsg = null;
+    socket?.close(); socket = null;
   }
 
   _onNewDevice(DiscoveryData ddata, Datagram datagram) {
@@ -95,6 +104,11 @@ class UdpChannel extends Channel {
     }
 
     onDeviceListChanged?.call();
+
+    // refresh socket
+    // preventative
+    // should help with switching networks
+    init();
   }
 
   @override

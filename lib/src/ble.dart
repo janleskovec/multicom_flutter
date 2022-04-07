@@ -171,12 +171,12 @@ class BleChannel extends Channel {
     );
   }
 
-  removeDevice(BleDevice dev, {callCallback=true}) {
+  Future<void> removeDevice(BleDevice dev, {callCallback=true}) async {
     if (devices.containsKey(dev.ddata.devId)) devices.remove(dev.ddata.devId);
     if (_scannedDevices.contains(dev.device.id.id)) _scannedDevices.remove(dev.device.id.id);
 
-    dev.stateSub?.cancel();
-    dev.device.disconnect();
+    await dev.stateSub?.cancel();
+    await dev.device.disconnect();
 
     if (callCallback) onDeviceListChanged?.call();
   }
@@ -185,11 +185,17 @@ class BleChannel extends Channel {
   Future<void> clearDevices() async {
     var _devIds = List.from(devices.keys);
 
+    List<Future> futures = [];
+
     for (String devId in _devIds) {
-      removeDevice(devices[devId] as BleDevice, callCallback: false);
+      futures.add(removeDevice(devices[devId] as BleDevice, callCallback: false));
     }
 
-    onDeviceListChanged?.call();
+    for (Future f in futures) {
+      await f;
+    }
+
+    await onDeviceListChanged?.call();
   }
 
   @override
