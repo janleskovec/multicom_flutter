@@ -54,15 +54,25 @@ class BleChannel extends Channel {
 
   final FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
 
+  StreamSubscription? _scanSub;
+
   @override
   Future<void> init() async {
+    close(); // close old if open
+
     // Listen to scan results
-    // TODO: cancel subscription if closing channel?
-    var subscription = flutterBlue.scanResults.listen((results) {
+    _scanSub = flutterBlue.scanResults.listen((results) {
         for (ScanResult r in results) {
           _onBtDeviceFound(r.device);
         }
     });
+  }
+
+  @override
+  close() {
+    flutterBlue.stopScan();
+    _scanSub?.cancel();
+    _scanSub = null;
   }
 
   final Set<String> _scannedDevices = { };
@@ -200,6 +210,9 @@ class BleChannel extends Channel {
     }
 
     await onDeviceListChanged?.call();
+
+    // re-init
+    await init();
   }
 
   @override
@@ -216,7 +229,7 @@ class BleChannel extends Channel {
     }
 
     // (re)Start scanning
-    flutterBlue.stopScan();
+    await flutterBlue.stopScan();
     flutterBlue.startScan(timeout: const Duration(seconds: 8));
   }
 }

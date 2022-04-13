@@ -12,7 +12,7 @@ import 'package:multicom_flutter/packet.dart';
 /// multicom client wrapper for various backends/clients
 class Client {
   Client({
-    required this.channels,
+    this.channels=const[],
   });
 
   final List<Channel> channels;
@@ -54,6 +54,7 @@ class Client {
       if (ch.runtimeType == type) {
         channels.remove(ch);
         await ch.clearDevices();
+        ch.close();
       }
     }
   }
@@ -339,6 +340,9 @@ abstract class Channel {
 
   /// Initialize communications channel
   Future<void> init();
+
+  /// Close any open sockets, streams...
+  void close();
 
   /// Start the discovery of compatible devices
   /// NOTE: calling cancels previous onDeviceListChanged

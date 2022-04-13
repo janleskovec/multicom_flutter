@@ -50,6 +50,7 @@ class UdpChannel extends Channel {
     ssOnMsg = socket!.asStream().listen(_onMsg);
   }
 
+  @override
   close() {
     ssOnMsg?.cancel(); ssOnMsg = null;
     socket?.close(); socket = null;
@@ -108,7 +109,7 @@ class UdpChannel extends Channel {
     // refresh socket
     // preventative
     // should help with switching networks
-    init();
+    await init();
   }
 
   @override
