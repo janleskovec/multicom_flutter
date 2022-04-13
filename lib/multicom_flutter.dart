@@ -4,6 +4,7 @@ export 'src/udp.dart' show UdpChannel, UdpDevice;
 export 'src/ble.dart' show BleChannel, BleDevice;
 
 import 'dart:async';
+import 'dart:developer';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -152,6 +153,10 @@ class Session {
   Session({
     required this.client,
     required this.devId,
+
+    this.timeout=const Duration(seconds: 4),
+    this.retransmitCount=4,
+    this.maxFailedCount=4,
   }) {
     final random = math.Random();
     id = random.nextInt((math.pow(2, 32)-1).toInt());
@@ -159,6 +164,17 @@ class Session {
 
   final Client client;
   final String devId;
+
+  /// timeout before considering a request failed
+  /// actual timeout is shorter if retransmit is used
+  final Duration timeout;
+
+  /// number of times a packet wil be re-transmitted before failing
+  final int retransmitCount;
+
+  /// max failed packet count before considering a device failed and removing it
+  final int maxFailedCount;
+
 
   final Map<int, Completer> requestCompleters = {};
 
@@ -203,24 +219,38 @@ class Session {
     final random = math.Random();
     int _nonce = random.nextInt((math.pow(2, 32)-1).toInt());
 
-    var completer = Completer<bool?>();
-    requestCompleters[_nonce] = completer;
-
     // NOTE: getter is always used to allow backends to reconnect
     //       or to switch over to a new backend if one fails
     Device? device = client.getDevice(devId);
     if (device == null) return null;
 
-    await device.send(Uint8List.fromList(
+    var completer = Completer<bool?>();
+    requestCompleters[_nonce] = completer;
+
+    var packet = Uint8List.fromList(
       [PacketType.ping.type] +
       (ByteData(4)..setUint32(0, id   )).buffer.asInt8List() +
       (ByteData(4)..setUint32(0, _nonce)).buffer.asInt8List()
-    ));
+    );
 
-    bool? res = await completer.future.timeout(const Duration(seconds: 4), onTimeout: () => null);
+    bool? res;
+
+    for (int i = 0; i < retransmitCount; i++) {
+      if (i > 0) log('session.ping retransmit count: $i');
+
+      device = client.getDevice(devId);
+      if (device == null) continue;
+
+      await device.send(packet);
+
+      res = await completer.future.timeout(timeout~/retransmitCount, onTimeout: () => null);
+      if (res != null) break;
+    }
 
     // remove completer
     if (requestCompleters.containsKey(_nonce)) { requestCompleters.remove(_nonce); }
+
+    if (device == null) return null;
 
     // failed device removal logic
     if (res == null) {
@@ -228,8 +258,9 @@ class Session {
     } else {
       device.failedCounter = 0;
     }
-    // TODO: global failed count setting
-    if (device.failedCounter > 4) device.remove();
+
+    // device is probbably offline
+    if (device.failedCounter > maxFailedCount) device.remove();
 
     return res;
   }
@@ -242,21 +273,34 @@ class Session {
     var completer = Completer<Uint8List?>();
     requestCompleters[_nonce] = completer;
 
-    Device? device = client.getDevice(devId);
-    if (device == null) return null;
+    Device? device;
 
-    await device.send(Uint8List.fromList(
+    var packet = Uint8List.fromList(
       [PacketType.get.type] +
       (ByteData(4)..setUint32(0, id   )).buffer.asInt8List() +
       (ByteData(4)..setUint32(0, _nonce)).buffer.asInt8List() +
       Uint8List.fromList(endpoint.codeUnits) + Uint8List.fromList([0]) +
       Uint8List.fromList(data.codeUnits)
-    ));
+    );
 
-    Uint8List? res = await completer.future.timeout(const Duration(seconds: 4), onTimeout: () => null);
+    Uint8List? res;
+
+    for (int i = 0; i < retransmitCount; i++) {
+      if (i > 0) log('session.get retransmit count: $i');
+      
+      device = client.getDevice(devId);
+      if (device == null) continue;
+
+      await device.send(packet);
+
+      res = await completer.future.timeout(timeout~/retransmitCount, onTimeout: () => null);
+      if (res != null) break;
+    }
 
     // remove completer
     if (requestCompleters.containsKey(_nonce)) { requestCompleters.remove(_nonce); }
+
+    if (device == null) return null;
 
     // failed device removal logic
     if (res == null) {
@@ -264,8 +308,9 @@ class Session {
     } else {
       device.failedCounter = 0;
     }
-    // TODO: global failed count setting
-    if (device.failedCounter > 4) device.remove();
+
+    // device is probbably offline
+    if (device.failedCounter > maxFailedCount) device.remove();
 
     return res;
   }
@@ -278,13 +323,15 @@ class Session {
     Device? device = client.getDevice(devId);
     if (device == null) return;
 
-    await device.send(Uint8List.fromList(
+    var packet = Uint8List.fromList(
       [PacketType.send.type] +
       (ByteData(4)..setUint32(0, id   )).buffer.asInt8List() +
       (ByteData(4)..setUint32(0, _nonce)).buffer.asInt8List() +
       Uint8List.fromList(endpoint.codeUnits) + Uint8List.fromList([0]) +
       Uint8List.fromList(data.codeUnits)
-    ));
+    );
+
+    await device.send(packet);
   }
 
   /// send data to endpoint and wait for ack
@@ -299,18 +346,32 @@ class Session {
     Device? device = client.getDevice(devId);
     if (device == null) return null;
 
-    await device.send(Uint8List.fromList(
+    var packet = Uint8List.fromList(
       [PacketType.post.type] +
       (ByteData(4)..setUint32(0, id   )).buffer.asInt8List() +
       (ByteData(4)..setUint32(0, _nonce)).buffer.asInt8List() +
       Uint8List.fromList(endpoint.codeUnits) + Uint8List.fromList([0]) +
       Uint8List.fromList(data.codeUnits)
-    ));
+    );
 
-    bool? res = await completer.future.timeout(const Duration(seconds: 4), onTimeout: () => null);
+    bool? res;
+
+    for (int i = 0; i < retransmitCount; i++) {
+      if (i > 0) log('session.post retransmit count: $i');
+
+      device = client.getDevice(devId);
+      if (device == null) continue;
+
+      await device.send(packet);
+
+      res = await completer.future.timeout(timeout~/retransmitCount, onTimeout: () => null);
+      if (res != null) break;
+    }
 
     // remove completer
     if (requestCompleters.containsKey(_nonce)) { requestCompleters.remove(_nonce); }
+
+    if (device == null) return null;
 
     // failed device removal logic
     if (res == null) {
@@ -318,13 +379,13 @@ class Session {
     } else {
       device.failedCounter = 0;
     }
-    // TODO: global failed count setting
-    if (device.failedCounter > 4) device.remove();
+
+    // device is probbably offline
+    if (device.failedCounter > maxFailedCount) device.remove();
 
     return res;
   }
 
-  // TODO: global timeout setting, retransmit get, post
 }
 
 
@@ -377,8 +438,10 @@ abstract class Device {
 /// Discovery packet data parser
 class DiscoveryData {
   DiscoveryData(Uint8List data) {
-    // TODO: RangeError (RangeError (index): Invalid value: Not in inclusive range 0..1: 2)
     var _decoded = String.fromCharCodes(data, 1).split('\x00');
+    
+    if (_decoded.length < 3) {fwId = ""; devId = ""; apiVer = 0; return;}
+    
     fwId = _decoded[0];
     devId = _decoded[1];
     apiVer = int.parse(_decoded[2]);
