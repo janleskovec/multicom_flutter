@@ -13,10 +13,16 @@ import 'package:multicom_flutter/packet.dart';
 /// multicom client wrapper for various backends/clients
 class Client {
   Client({
-    this.channels=const[],
-  });
+    channels,
+  }) {
+    if (channels != null) {
+      this.channels = channels;
+    } else {
+      this.channels = [];
+    }
+  }
 
-  final List<Channel> channels;
+  late final List<Channel> channels;
   final Map<int, Session> sessions = { };
   Function()? onDeviceListChanged;
 
