@@ -88,13 +88,21 @@ class BleChannel extends Channel {
       await dev.connect();
     }
 
-    List<BluetoothService> services = await dev.discoverServices();
-    BluetoothService? uartService; 
-    for (BluetoothService s in services) {
-      if (s.uuid == Guid(serviceUUID)) {
-        uartService = s;
-        break;
+    // find uart service
+    BluetoothService? uartService;
+
+    // TODO: known issue (paired device)
+    // https://github.com/pauldemarco/flutter_blue/issues/760
+    try {
+      List<BluetoothService> services = await dev.discoverServices();
+      for (BluetoothService s in services) {
+        if (s.uuid == Guid(serviceUUID)) {
+          uartService = s;
+          break;
+        }
       }
+    } on Exception {
+      log('discovery err for device: ${dev.toString()}');
     }
 
     log('device: "${dev.name}"');
@@ -123,7 +131,8 @@ class BleChannel extends Channel {
     int mtu = 512;
     if (Platform.isAndroid) mtu = 512;
     if (Platform.isIOS) mtu = 185;
-    await dev.requestMtu(mtu);
+    // ios does not support setting MTU
+    if (!Platform.isIOS) await dev.requestMtu(mtu);
     mtu = await dev.mtu.first;
     log('BT MTU: $mtu');
     // minimum MTU is 64, so that discovery does not fail
