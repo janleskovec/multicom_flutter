@@ -84,7 +84,15 @@ class BleChannel extends Channel {
     if (_scannedDevices.contains(dev.id.id)) return;
     _scannedDevices.add(dev.id.id);
 
-    if (! (await flutterBlue.connectedDevices).contains(dev)) {
+    // util function
+    Future<bool> Function() checkIsConnected =  () async => (await flutterBlue.connectedDevices).contains(dev);
+
+    // iOS leaves connections open for some reason, so disconnect first
+    if (Platform.isIOS && await checkIsConnected()) {
+      await dev.disconnect();
+    }
+
+    if (! await checkIsConnected()) {
       await dev.connect();
     }
 

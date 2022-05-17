@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -118,10 +119,15 @@ class UdpChannel extends Channel {
   }) async {
     super.startDiscovery(onDeviceListChanged: onDeviceListChanged);
 
-    // send discovery packet 5 times
-    for (int i = 0; i < 5; i++) {
-      await socket?.send('\x00'.codeUnits, Endpoint.broadcast(port: Port(targetPort)));
-      await Future.delayed(const Duration(milliseconds: 250));
-    } 
+    try {
+      // send discovery packet 5 times
+      for (int i = 0; i < 5; i++) {
+        await socket?.send('\x00'.codeUnits, Endpoint.broadcast(port: Port(targetPort)));
+        await Future.delayed(const Duration(milliseconds: 250));
+      }
+    } on OSError {
+      // probs not connected to a local network
+      log('MultiCom -> failed broadcasting UDP packet on local network');
+    }
   }
 }
