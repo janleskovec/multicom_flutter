@@ -145,7 +145,7 @@ class UdpChannel extends Channel {
     try {
       // send discovery packet 5 times
       for (int i = 0; i < 5; i++) {
-        bSocket?.send('\x00'.codeUnits, InternetAddress(wifiBroadcast!), targetPort);
+        bSocket?.send('\x00'.codeUnits, InternetAddress(wifiBroadcast), targetPort);
         await Future.delayed(const Duration(milliseconds: 250));
       }
     } catch (e) {
