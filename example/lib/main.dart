@@ -37,7 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Client client = Client(
     channels: [
       UdpChannel(targetPort: 5021),
-      BleChannel(),
+      //BleChannel(),
     ]);
 
   @override
@@ -67,8 +67,9 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          client.sendDiscover();
+        onPressed: () async {
+          await client.clearDevices();
+          await client.sendDiscover();
         },
         tooltip: 'Discover',
         child: const Icon(Icons.search),

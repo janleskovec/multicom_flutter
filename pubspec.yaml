@@ -12,9 +12,10 @@ dependencies:
   flutter:
     sdk: flutter
   
-  udp: ^5.0.1                # udp comm
-  flutter_blue_plus: ^1.1.2  # BLE
-  permission_handler: ^9.2.0 # BLE
+  udp: ^5.0.3                # udp comm
+  network_info_plus: ^3.0.2  # find broadcast address
+  flutter_blue_plus: ^1.4.0  # BLE
+  permission_handler: ^10.2.0 # BLE
 
 dev_dependencies:
   flutter_test:

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:multicom_flutter/packet.dart';
+import 'package:network_info_plus/network_info_plus.dart';
 import 'package:udp/udp.dart';
 
 import 'package:multicom_flutter/multicom_flutter.dart';
@@ -40,6 +41,9 @@ class UdpChannel extends Channel {
 
   final int targetPort;
 
+  final info = NetworkInfo();
+
+  RawDatagramSocket? bSocket;
   UDP? socket;
 
   StreamSubscription? ssOnMsg;
@@ -47,6 +51,17 @@ class UdpChannel extends Channel {
   @override
   Future<void> init() async {
     close(); // close old socket if exists
+    bSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+    bSocket!.broadcastEnabled = true;
+    ssOnMsg = bSocket!.listen((evt) {
+      if (evt == RawSocketEvent.read) {
+        if (bSocket == null) return;
+        var dat = bSocket!.receive();
+        if (dat == null) return;
+        _onMsg(dat);
+      }
+    });
+
     socket = await UDP.bind(Endpoint.any());
     ssOnMsg = socket!.asStream().listen(_onMsg);
   }
@@ -55,6 +70,7 @@ class UdpChannel extends Channel {
   close() {
     ssOnMsg?.cancel(); ssOnMsg = null;
     socket?.close(); socket = null;
+    bSocket?.close(); bSocket = null;
   }
 
   _onNewDevice(DiscoveryData ddata, Datagram datagram) {
@@ -119,13 +135,21 @@ class UdpChannel extends Channel {
   }) async {
     super.startDiscovery(onDeviceListChanged: onDeviceListChanged);
 
+    final wifiBroadcast = await info.getWifiBroadcast();
+
+    if (wifiBroadcast == null) {
+      log('MultiCom -> cannot find UDP broadcast address');
+      return;
+    }
+
     try {
       // send discovery packet 5 times
       for (int i = 0; i < 5; i++) {
-        await socket?.send('\x00'.codeUnits, Endpoint.broadcast(port: Port(targetPort)));
+        bSocket?.send('\x00'.codeUnits, InternetAddress(wifiBroadcast!), targetPort);
         await Future.delayed(const Duration(milliseconds: 250));
       }
-    } on OSError {
+    } catch (e) {
+      if (e is OSError) log('OSError: ${e.message}');
       // probs not connected to a local network
       log('MultiCom -> failed broadcasting UDP packet on local network');
     }
