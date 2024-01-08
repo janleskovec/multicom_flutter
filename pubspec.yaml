@@ -14,7 +14,7 @@ dependencies:
   
   udp: ^5.0.3                # udp comm
   network_info_plus: ^3.0.2  # find broadcast address
-  flutter_blue_plus: ^1.4.0  # BLE
+  flutter_blue_plus: ^1.15.8  # BLE
   permission_handler: ^10.2.0 # BLE
 
 dev_dependencies:
