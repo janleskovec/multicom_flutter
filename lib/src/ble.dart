@@ -46,41 +46,50 @@ class BleDevice extends Device {
 
 /// BLE comm implementation
 class BleChannel extends Channel {
-  BleChannel();
+  BleChannel({
+    // only connect to "supported" devices
+    this.searchNameprefix,
+  });
 
   static const serviceUUID = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E';
   static const charTxUUID  = '6E400002-B5A3-F393-E0A9-E50E24DCCA9E';
   static const charRxUUID  = '6E400003-B5A3-F393-E0A9-E50E24DCCA9E';
 
-  StreamSubscription? _scanSub;
+  final String? searchNameprefix;
 
   @override
   Future<void> init() async {
     close(); // close old if open
 
     // Listen to scan results
-    _scanSub = FlutterBluePlus.scanResults.listen((results) {
+    var _scanSub = FlutterBluePlus.scanResults.listen((results) {
         for (ScanResult r in results) {
           _onBtDeviceFound(r.device);
         }
     });
+
+    // cleanup: cancel subscription when scanning stops
+    FlutterBluePlus.cancelWhenScanComplete(_scanSub);
   }
 
   @override
   close() {
     FlutterBluePlus.stopScan();
-    _scanSub?.cancel();
-    _scanSub = null;
   }
 
   final Set<String> _scannedDevices = { };
 
   _onBtDeviceFound(BluetoothDevice dev) async {
-    log('BleChannel._onBtDeviceFound: ${dev.remoteId} - "${dev.platformName}"');
+    log('BleChannel._onBtDeviceFound: [FOUND] ${dev.remoteId} - "${dev.advName}"');
+
+    // if filter is provided skip non-supported devices
+    if (searchNameprefix != null && !dev.advName.toString().startsWith(searchNameprefix!)) return;
 
     // check if allready found
     if (_scannedDevices.contains(dev.remoteId.str)) return;
     _scannedDevices.add(dev.remoteId.str);
+
+    log('BleChannel._onBtDeviceFound: [CONNECTING] ${dev.remoteId} - "${dev.advName}"');
 
     // util function
     checkIsConnected() => (FlutterBluePlus.connectedDevices).contains(dev);
@@ -93,6 +102,8 @@ class BleChannel extends Channel {
     if (!checkIsConnected()) {
       await dev.connect();
     }
+
+    log('BleChannel._onBtDeviceFound: [CONNECTED] ${dev.remoteId} - "${dev.advName}"');
 
     // find uart service
     BluetoothService? uartService;
@@ -111,7 +122,7 @@ class BleChannel extends Channel {
       log('discovery err for device: ${dev.toString()}');
     }
 
-    log('device: "${dev.platformName}"');
+    log('device: "${dev.advName}"');
 
     log('uartService: ${uartService?.uuid.toString()}');
 
