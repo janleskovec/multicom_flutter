@@ -2,10 +2,6 @@ PODS:
   - Flutter (1.0.0)
   - flutter_blue_plus (0.0.1):
     - Flutter
-    - flutter_blue_plus/Protos (= 0.0.1)
-  - flutter_blue_plus/Protos (0.0.1):
-    - Flutter
-    - Protobuf (~> 3.11)
   - fluttertoast (0.0.2):
     - Flutter
     - Toast
@@ -13,7 +9,6 @@ PODS:
     - Flutter
   - permission_handler_apple (9.0.4):
     - Flutter
-  - Protobuf (3.21.12)
   - Toast (4.0.0)
 
 DEPENDENCIES:
@@ -25,7 +20,6 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
-    - Protobuf
     - Toast
 
 EXTERNAL SOURCES:
@@ -42,11 +36,10 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
-  flutter_blue_plus: 6787777145d615de01828f3a9fa423c3c702f0b3
+  flutter_blue_plus: 4837da7d00cf5d441fdd6635b3a57f936778ea96
   fluttertoast: eb263d302cc92e04176c053d2385237e9f43fad0
-  network_info_plus: b78876159360f5580608c2cea620d6ceffabd0ad
+  network_info_plus: 9d930145451916919786087c4173226363616071
   permission_handler_apple: 44366e37eaf29454a1e7b1b7d736c2cceaeb17ce
-  Protobuf: 120350fc38646e2dedc26f49ecba778184ea1de2
   Toast: 91b396c56ee72a5790816f40d3a94dd357abc196
 
 PODFILE CHECKSUM: ef19549a9bc3046e7bb7d2fab4d021637c0c58a3

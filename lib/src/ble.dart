@@ -17,7 +17,7 @@ class BleDevice extends Device {
     required this.rxc,
     required this.txc,
   }) : super(ddata: ddata) {
-    stateSub = device.state.listen(_onStateChanged);
+    stateSub = device.connectionState.listen(_onStateChanged);
   }
 
   final BleChannel channel;
@@ -25,10 +25,10 @@ class BleDevice extends Device {
   final BluetoothCharacteristic rxc;
   final BluetoothCharacteristic txc;
 
-  StreamSubscription<BluetoothDeviceState>? stateSub;
+  StreamSubscription<BluetoothConnectionState>? stateSub;
 
-  _onStateChanged(BluetoothDeviceState state) {
-    if (state == BluetoothDeviceState.disconnected) {
+  _onStateChanged(BluetoothConnectionState state) {
+    if (state == BluetoothConnectionState.disconnected) {
       channel.removeDevice(this);
     }
   }
@@ -52,8 +52,6 @@ class BleChannel extends Channel {
   static const charTxUUID  = '6E400002-B5A3-F393-E0A9-E50E24DCCA9E';
   static const charRxUUID  = '6E400003-B5A3-F393-E0A9-E50E24DCCA9E';
 
-  final FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
-
   StreamSubscription? _scanSub;
 
   @override
@@ -61,7 +59,7 @@ class BleChannel extends Channel {
     close(); // close old if open
 
     // Listen to scan results
-    _scanSub = flutterBlue.scanResults.listen((results) {
+    _scanSub = FlutterBluePlus.scanResults.listen((results) {
         for (ScanResult r in results) {
           _onBtDeviceFound(r.device);
         }
@@ -70,7 +68,7 @@ class BleChannel extends Channel {
 
   @override
   close() {
-    flutterBlue.stopScan();
+    FlutterBluePlus.stopScan();
     _scanSub?.cancel();
     _scanSub = null;
   }
@@ -78,21 +76,21 @@ class BleChannel extends Channel {
   final Set<String> _scannedDevices = { };
 
   _onBtDeviceFound(BluetoothDevice dev) async {
-    log('BleChannel._onBtDeviceFound: ${dev.id} - "${dev.name}"');
+    log('BleChannel._onBtDeviceFound: ${dev.remoteId} - "${dev.platformName}"');
 
     // check if allready found
-    if (_scannedDevices.contains(dev.id.id)) return;
-    _scannedDevices.add(dev.id.id);
+    if (_scannedDevices.contains(dev.remoteId.str)) return;
+    _scannedDevices.add(dev.remoteId.str);
 
     // util function
-    Future<bool> Function() checkIsConnected =  () async => (await flutterBlue.connectedDevices).contains(dev);
+    checkIsConnected() => (FlutterBluePlus.connectedDevices).contains(dev);
 
     // iOS leaves connections open for some reason, so disconnect first
-    if (Platform.isIOS && await checkIsConnected()) {
+    if (Platform.isIOS && checkIsConnected()) {
       await dev.disconnect();
     }
 
-    if (! await checkIsConnected()) {
+    if (!checkIsConnected()) {
       await dev.connect();
     }
 
@@ -113,7 +111,7 @@ class BleChannel extends Channel {
       log('discovery err for device: ${dev.toString()}');
     }
 
-    log('device: "${dev.name}"');
+    log('device: "${dev.platformName}"');
 
     log('uartService: ${uartService?.uuid.toString()}');
 
@@ -246,7 +244,7 @@ class BleChannel extends Channel {
     }
 
     // (re)Start scanning
-    await flutterBlue.stopScan();
-    flutterBlue.startScan(timeout: const Duration(seconds: 8));
+    await FlutterBluePlus.stopScan();
+    FlutterBluePlus.startScan(timeout: const Duration(seconds: 8));
   }
 }
