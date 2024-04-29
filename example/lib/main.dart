@@ -37,7 +37,9 @@ class _MyHomePageState extends State<MyHomePage> {
   Client client = Client(
     channels: [
       UdpChannel(targetPort: 5021),
-      BleChannel(searchNameprefix: 'SKH IR'),
+      BleChannel(
+        //searchNameprefix: 'SKH IR',
+      ),
     ]);
 
   @override
